@@ -1,5 +1,5 @@
 # store_scrapper
-Program to collect imformation about games available on Google Play Store
+Program to collect information about games available on Google Play Store
 
 # STEPS:
 - go to a location of your choice say 'my_location'
@@ -19,8 +19,8 @@ Program to collect imformation about games available on Google Play Store
         `pip install play_scraper`                        (install project dependencies)
         `python -i sweeper.py`                            (start execution)
         `press ctrl+c`                                    (this stops the program)
-        
-    NOTE: You might need to press ctrl+d and ctrl+c as well again in that order to properly exit from the command line (this is a bug in the program and will be fixed soon).
+
+    _NOTE_: You might need to press ctrl+d and ctrl+c as well again in that order to properly exit from the command line (this is a bug in the program and will be fixed soon).
     The log file gets generated at log/sweeper_<timestamp>.log
     On pressing ctrl+c the execution of the program is stopped and the data collected so far is dumped into opt/sweeper_<timestamp>.json
     Total number of records and time taken for execution is printed in both console and the log file.
