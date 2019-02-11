@@ -60,6 +60,7 @@ def get_apps_by_collection_category(coln, catg, page=0):
         games = []
     else:
         games = result
+
     new_unique_games = list(map(extract_id_from_app_info, filter(
         filter_unique_and_update_map,
         games
@@ -82,20 +83,34 @@ def dump_data_to_disc():
     else:
         log.info('successfully writen scraped data to file: {}'.format(opt_file_path))
 
+def post_processing():
+    print('records collected: {}'.format(len(process_queue)))
+    dump_data_to_disc()
+    log.info('PROGRAM_GRACEFULLY_TERMINATED')
+
 def main():
-    # for coln in constants.COLLECTIONS.keys():
-    tasks.append(runner(functools.partial(get_apps_by_collection_category, 'NEW_FREE', 'GAME')))
+    for coln in constants.COLLECTIONS.keys():
+        for catg in constants.CATEGORIES.keys():
+            tasks.append(loop.create_task(runner(functools.partial(get_apps_by_collection_category, coln, catg))))
     loop.run_forever()
 
 if __name__ == '__main__':
+    start = time.time()
     try:
         main()
     except KeyboardInterrupt:
+        if loop.is_running():
+            loop.stop()
+        if not loop.is_closed():
+            loop.close()
         log.warning('SCRAPING_TERMINATED_BEFORE_COMPLETION')
+        post_processing()
     except:
         log.exception('UNKNOWN_EXCEPTION_ENCOUNTERED')
         raise
     else:
-        print('records collected: {}'.format(len(process_queue)))
-        dump_data_to_disc()
-        log.info('PROGRAM_GRACEFULLY_TERMINATED')
+        post_processing()
+    finally:
+        end = time.time()
+        print('total time taken for execution: {} seconds'.format(end-start))
+        exit()
