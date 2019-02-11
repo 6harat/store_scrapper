@@ -2,20 +2,20 @@
 Program to collect information about games available on Google Play Store
 
 # STEPS:
-+ go to a location of your choice say 'my_location'
-+ clone the code:
-    - current_folder:     my_location
++ **go to a location of your choice**: `my_location`
++ **clone the code**:
+    - current_folder:     `my_location`
     - execute_command:    `git clone git@github.com:Gulats/store_scrapper.git`
-+ create virtualenv for store_scrapper:
-    - current_folder:     my_location
++ **create virtualenv for store_scrapper**:
+    - current_folder:     `my_location`
     - execute_commands:
         * `pip install virtualenv`                          (if virtualenv is not already installed)
         * `virtualenv -p <path-to-python3.7> store_scrapper`(creates a virtualenv for project)
-+ running program:
-    - current_folder:     my_location
++ **running program**:
+    - current_folder:     `my_location`
     - execute_commands:
         * `cd store_scrapper`                               (change directory location)
-        * `source bin/activate`                             (or equivalent windows activate command)
+        * `source bin/activate`                             (or equivalent windows activate cmd)
         * `pip install play_scraper`                        (install project dependencies)
         * `python -i sweeper.py`                            (start execution)
         * `press ctrl+c`                                    (this stops the program)
@@ -24,9 +24,9 @@ Program to collect information about games available on Google Play Store
     The log file gets generated at log/sweeper_<timestamp>.log
     On pressing ctrl+c the execution of the program is stopped and the data collected so far is dumped into opt/sweeper_<timestamp>.json
     Total number of records and time taken for execution is printed in both console and the log file.
-+ closing out:
-    - current_folder:     store_scraper
-    - execute_command:    deactivate                      (or equivalent windows deactivate command)
++ **closing out**:
+    - current_folder:     `store_scraper`
+    - execute_command:    `deactivate`                      (or equivalent windows deactivate cmd)
 
 # TODOS:
 + add support to read the past json file first and then start executing again so as to aggregate data over and above the one previously collected.
