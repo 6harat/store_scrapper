@@ -10,7 +10,7 @@ Program to collect information about games available on Google Play Store
     current_folder:     my_location
     execute_commands:
         `pip install virtualenv`                          (if virtualenv is not already installed)
-        `virtualenv -p <path-to-python3> store_scrapper`  (creates a virtual environment for project)
+        `virtualenv -p <path-to-python3.7> store_scrapper`(creates a virtual environment for project)
 - running program:
     current_folder:     my_location
     execute_commands:
