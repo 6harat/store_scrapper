@@ -65,7 +65,7 @@ def get_apps_similar_to(app_id):
         games = []
     else:
         games = result
-        
+
     gather_more_apps_using_similar(games)
 
 def get_apps_by_collection_category(coln, catg, page=0):
@@ -100,7 +100,9 @@ def dump_data_to_disc():
         log.info('successfully writen scraped data to file: {}'.format(opt_file_path))
 
 def post_processing():
-    print('total records collected: {}'.format(len(game_info_map.keys())))
+    total_records_collected = len(game_info_map.keys())
+    print('total records collected: {}'.format(total_records_collected)
+    log.info('TOTAL_RECORDS_COLLECTED: {}'.format(total_records_collected))
     dump_data_to_disc()
     log.info('PROGRAM_GRACEFULLY_TERMINATED')
 
@@ -129,4 +131,6 @@ if __name__ == '__main__':
         post_processing()
     finally:
         end = time.time()
-        print('total time taken for execution: {} seconds'.format(end-start))
+        total_time_taken = end-start
+        print('total time taken for execution: {} seconds'.format(total_time_taken))
+        log.info('TOTAL_TIME_TAKEN_FOR_EXECUTION: {}'.format(total_time_taken))
