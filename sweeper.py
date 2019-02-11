@@ -41,14 +41,16 @@ def has_more_records(records):
 def extract_id_from_app_info(app_info):
     return app_info.get('app_id')
 
-def play_executor(fn):
+def play_executor(fn, retryCount=0):
+    if retryCount >= 5:
+        return []
     try:
         result = fn()
     except ValueError:
         log.exception('PLAY_SCRAPER_ERROR')
         games = []
     except:
-        games = play_executor(fn)
+        games = play_executor(fn, retryCount+1)
     else:
         games = result
 
