@@ -8,7 +8,12 @@ for folder in ['log/', 'opt/']:
         os.makedirs(folder)
 epoch = calendar.timegm(time.gmtime())
 
-get_file_name = lambda folder, extension: '{}/{}_{}.{}'.format(folder, os.path.basename(__file__)[:-3], epoch, extension)
+get_file_name = lambda folder, extension: '{}/{}_{}.{}'.format(
+    folder, 
+    os.path.basename(__file__)[:-3], 
+    epoch, 
+    extension
+)
 log_file_path = get_file_name('log', 'log')
 opt_file_path = get_file_name('opt', 'json')
 
@@ -69,9 +74,12 @@ def gather_more_apps_using_similar(games):
         games
     )))
     if new_unique_games:
-        log.info('adding {} unique records to event_loop for further processing'.format(len(new_unique_games)))
+        log.info('adding {} unique records to event_loop'.format(len(new_unique_games)))
         for game in new_unique_games:
-            tasks.append(loop.create_task(runner(functools.partial(get_apps_similar_to, game))))
+            tasks.append(loop.create_task(runner(functools.partial(
+                get_apps_similar_to, 
+                game
+            ))))
 
 def get_apps_similar_to(app_id):
     play_executor(functools.partial(play.similar, app_id))
@@ -109,7 +117,11 @@ def post_processing():
 def main():
     for coln in constants.COLLECTIONS.keys():
         for catg in constants.CATEGORIES.keys():
-            tasks.append(loop.create_task(runner(functools.partial(get_apps_by_collection_category, coln, catg))))
+            tasks.append(loop.create_task(runner(functools.partial(
+                get_apps_by_collection_category, 
+                coln, 
+                catg
+            ))))
     loop.run_forever()
 
 if __name__ == '__main__':
