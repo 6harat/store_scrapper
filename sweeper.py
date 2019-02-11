@@ -59,7 +59,7 @@ def play_executor(fn, retryCount=0):
     else:
         games = result
 
-    gather_more_apps_using_similar(games)
+    persist_and_gather_more_apps_using_similar(games)
     return games
 
 def filter_unique_and_update_map(game):
@@ -68,7 +68,7 @@ def filter_unique_and_update_map(game):
     game_info_map[app_id] = game
     return app_info == constants.NO_RECORD_FOUND
 
-def gather_more_apps_using_similar(games):
+def persist_and_gather_more_apps_using_similar(games):
     new_unique_games = list(map(extract_id_from_app_info, filter(
         filter_unique_and_update_map,
         games
