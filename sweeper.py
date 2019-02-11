@@ -41,6 +41,20 @@ def has_more_records(records):
 def extract_id_from_app_info(app_info):
     return app_info.get('app_id')
 
+def play_executor(fn):
+    try:
+        result = fn()
+    except ValueError:
+        log.exception('PLAY_SCRAPER_ERROR')
+        games = []
+    except:
+        games = play_executor(fn)
+    else:
+        games = result
+
+    gather_more_apps_using_similar(games)
+    return games
+
 def filter_unique_and_update_map(game):
     app_id = game.get('app_id')
     app_info = game_info_map.get(app_id, constants.NO_RECORD_FOUND)
@@ -58,32 +72,16 @@ def gather_more_apps_using_similar(games):
             tasks.append(loop.create_task(runner(functools.partial(get_apps_similar_to, game))))
 
 def get_apps_similar_to(app_id):
-    try:
-        result = play.similar(app_id)
-    except:
-        log.exception('PLAY_SCRAPER_ERROR_IN_SIMILAR')
-        games = []
-    else:
-        games = result
-
-    gather_more_apps_using_similar(games)
+    play_executor(functools.partial(play.similar, app_id))
 
 def get_apps_by_collection_category(coln, catg, page=0):
-    try:
-        result = play.collection(
-            collection=coln,
-            category=catg,
-            results=constants.MAX_RECORD_SIZE_PER_PAGE,
-            page=page
-        )
-    except:
-        log.exception('PLAY_SCRAPER_ERROR_IN_COLLECTION_CATEGORY')
-        games = []
-    else:
-        games = result
-
-    gather_more_apps_using_similar(games)
-
+    games = play_executor(functools.partial(
+        play.collection, 
+        collection=coln, 
+        category=catg, 
+        results=constants.MAX_RECORD_SIZE_PER_PAGE, 
+        page=page
+    ))
     if has_more_records(games):
         get_apps_by_collection_category(coln, catg, page+1)
 
@@ -101,7 +99,7 @@ def dump_data_to_disc():
 
 def post_processing():
     total_records_collected = len(game_info_map.keys())
-    print('total records collected: {}'.format(total_records_collected)
+    print('total records collected: {}'.format(total_records_collected))
     log.info('TOTAL_RECORDS_COLLECTED: {}'.format(total_records_collected))
     dump_data_to_disc()
     log.info('PROGRAM_GRACEFULLY_TERMINATED')
