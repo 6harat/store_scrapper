@@ -27,7 +27,7 @@ import json
 import functools
 
 game_info_map = {}
-process_queue = deque()
+# process_queue = deque()
 tasks = []
 loop = asyncio.get_event_loop()
 
@@ -47,6 +47,27 @@ def filter_unique_and_update_map(game):
     game_info_map[app_id] = game
     return app_info == constants.NO_RECORD_FOUND
 
+def gather_more_apps_using_similar(games):
+    new_unique_games = list(map(extract_id_from_app_info, filter(
+        filter_unique_and_update_map,
+        games
+    )))
+    if new_unique_games:
+        log.info('adding {} unique records to event_loop for further processing'.format(len(new_unique_games)))
+        for game in new_unique_games:
+            tasks.append(loop.create_task(runner(functools.partial(get_apps_similar_to, game))))
+
+def get_apps_similar_to(app_id):
+    try:
+        result = play.similar(app_id)
+    except:
+        log.exception('PLAY_SCRAPER_ERROR_IN_SIMILAR')
+        games = []
+    else:
+        games = result
+        
+    gather_more_apps_using_similar(games)
+
 def get_apps_by_collection_category(coln, catg, page=0):
     try:
         result = play.collection(
@@ -56,18 +77,13 @@ def get_apps_by_collection_category(coln, catg, page=0):
             page=page
         )
     except:
-        log.exception('PLAY_SCRAPER_ERROR')
+        log.exception('PLAY_SCRAPER_ERROR_IN_COLLECTION_CATEGORY')
         games = []
     else:
         games = result
 
-    new_unique_games = list(map(extract_id_from_app_info, filter(
-        filter_unique_and_update_map,
-        games
-    )))
-    if new_unique_games:
-        log.info('adding {} unique records to process_queue for further processing'.format(len(new_unique_games)))
-        process_queue.extend(new_unique_games)
+    gather_more_apps_using_similar(games)
+
     if has_more_records(games):
         get_apps_by_collection_category(coln, catg, page+1)
 
