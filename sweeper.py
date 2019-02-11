@@ -84,7 +84,7 @@ def dump_data_to_disc():
         log.info('successfully writen scraped data to file: {}'.format(opt_file_path))
 
 def post_processing():
-    print('records collected: {}'.format(len(process_queue)))
+    print('total records collected: {}'.format(len(game_info_map.keys())))
     dump_data_to_disc()
     log.info('PROGRAM_GRACEFULLY_TERMINATED')
 
@@ -105,6 +105,7 @@ if __name__ == '__main__':
             loop.close()
         log.warning('SCRAPING_TERMINATED_BEFORE_COMPLETION')
         post_processing()
+        exit()
     except:
         log.exception('UNKNOWN_EXCEPTION_ENCOUNTERED')
         raise
@@ -113,4 +114,3 @@ if __name__ == '__main__':
     finally:
         end = time.time()
         print('total time taken for execution: {} seconds'.format(end-start))
-        exit()
