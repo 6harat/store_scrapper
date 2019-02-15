@@ -30,15 +30,18 @@ from collections import deque
 import constants
 import json
 import functools
+from concurrent.futures import ThreadPoolExecutor
 
 game_info_map = {}
 # process_queue = deque()
 tasks = []
 loop = asyncio.get_event_loop()
 
+PROCESS_EXECUTOR = ThreadPoolExecutor(max_workers=constants.MAX_WORKERS)
+
 @asyncio.coroutine
 def runner(task):
-    yield from loop.run_in_executor(constants.PROCESS_EXECUTOR, task)
+    yield from loop.run_in_executor(PROCESS_EXECUTOR, task)
 
 def has_more_records(records):
     return len(records) == constants.MAX_RECORD_SIZE_PER_PAGE

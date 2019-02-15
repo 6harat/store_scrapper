@@ -1,11 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
-
 MAX_RECORD_SIZE_PER_PAGE = 120
 MAX_WORKERS = 10
 NO_RECORD_FOUND = object()
 PENDING_FETCH = object()
-PROCESS_EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-
 
 COLLECTIONS = {
     'NEW_FREE': 'topselling_new_free',
