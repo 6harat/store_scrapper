@@ -118,8 +118,8 @@ def post_processing():
     log.info('PROGRAM_GRACEFULLY_TERMINATED')
 
 def main():
-    for coln in constants.COLLECTIONS.keys():
-        for catg in constants.CATEGORIES.keys():
+    for coln in constants.COLLECTIONS:
+        for catg in constants.CATEGORIES:
             tasks.append(loop.create_task(runner(functools.partial(
                 get_apps_by_collection_category, 
                 coln, 
