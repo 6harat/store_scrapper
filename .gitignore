@@ -4,6 +4,9 @@ include/
 lib/
 opt/
 log/
+pyvenv.cfg
+dump/
+wip_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
