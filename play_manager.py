@@ -22,6 +22,7 @@ class PlayManager():
         self._play = play
         self.info_map = dict()
         self._tasks = []
+        self._shielded_tasks = []
         self.start_datetime = time.ctime()
         self.stop_datetime = None
         self._start_time = time.time()
@@ -47,12 +48,15 @@ class PlayManager():
         log.info('*** peek results for manager [{}]: {}'.format(self.id, opt))
         return opt
     
-    def _register_task(self, coro):
+    def _register_task(self, coro, shield=False):
         if not self.is_cancelled:
             task = self._loop.create_task(coro)
-            self._tasks.append(task)
+            if shield:
+                self._shielded_tasks.append(task)
+            else:
+                self._tasks.append(task)
 
-    def _terminate_tasks(self):
+    async def _terminate_tasks(self):
         log.info('*** terminating tasks for manager: {} ***'.format(self.id))
         for task in self._tasks:
             if not task.done():
@@ -63,8 +67,22 @@ class PlayManager():
                     log.warning('### task already cancelled ###')
                 except Exception:
                     log.exception('@@@ unkown exception while cancelling task @@@')
+        if self._shielded_tasks:
+            try:
+                log.info('*** waiting for shielded tasks to complete ***')
+                await asyncio.gather(*self._shielded_tasks)
+            except:
+                log.exception('@@@ unable to await for all shielded tasks @@@')
+            else:
+                log.info('*** shielded tasks successfully completed ***')
+            finally:
+                log.info('$$$ printing shielded tasks $$$')
+                log.info(self._shielded_tasks)
 
     def _terminate_loop(self):
+        """
+        UNUSED_FUNCTION: To be removed
+        """
         log.info('*** terminating loop for manager: {} ***'.format(self.id))
         try:
             if self._loop.is_running():
@@ -100,7 +118,7 @@ class PlayManager():
         if self.is_cancelled:
             return
         self.is_cancelled = True
-        self._terminate_tasks()
+        await self._terminate_tasks()
 
         await self._play.force_close()
         self.time_taken = time.time() - self._start_time
@@ -118,9 +136,16 @@ class PlayManager():
         return records and len(records) == page_size
 
     def _filter_unique_and_update_map(self, game):
-        app_info = self.info_map.get(game.get('app_id'), NO_RECORD_FOUND)
-        self.info_map[game.get('app_id')] = game
-        return app_info == NO_RECORD_FOUND
+        app_id = game.get('app_id')
+        app_info = self.info_map.get(app_id, NO_RECORD_FOUND)
+        if app_info != NO_RECORD_FOUND:
+            return False
+        self.info_map[app_id] = game
+        self._register_task(
+            self.fetch_app_details(app_id),
+            shield=True
+        )
+        return True
 
     def _persist_and_determine_recent_apps(self, games):
         return [] if games is None else list(filter(
@@ -128,8 +153,8 @@ class PlayManager():
             games
         ))
 
-    async def _retriable_request(self, task, retry_limit=3):
-        if retry_limit <= 0 or self.is_cancelled:
+    async def _retriable_request(self, task, retry_limit=3, shield=False):
+        if retry_limit <= 0 or (self.is_cancelled and not shield):
             return None
         try:
             opt = await task()
@@ -141,7 +166,7 @@ class PlayManager():
             opt = None
         except Exception:
             log.exception('@@@ retrying on unknown exception @@@')
-            opt = await self._retriable_request(task, retry_limit-1)
+            opt = await self._retriable_request(task, retry_limit-1, shield=shield)
         finally:
             return opt
 
@@ -161,13 +186,16 @@ class PlayManager():
         game = await self._retriable_request(functools.partial(
             self._play.details,
             app_id
-        ))
+        ), shield=True)
         if game is not None:
-            app_info = self.info_map.get(game.get('app_id'), NO_RECORD_FOUND)
+            log.info('*** succesfully fetched app details: {} ***'.format(game))
+            app_info = self.info_map.get(app_id, NO_RECORD_FOUND)
             if app_info == NO_RECORD_FOUND:
-                self.info_map[game.get('app_id')] = game
+                self.info_map[app_id] = game
             else:
-                self.info_map[game.get('app_id')].update(game)
+                self.info_map[app_id].update(game)
+        else:
+            log.warning('### unable to fetch app details for: {} ###'.format(app_id))
 
     async def fetch_apps_by_similarity(self, app_id):
         log.info('*** fetching apps similar to: {} ***'.format(app_id))
@@ -186,7 +214,7 @@ class PlayManager():
         ))
         if PlayManager._has_more_records(games, results):
             log.info('*** fetching more pages for {}/{} ***'.format(coln, catg))
-            await self.fetch_apps_by_collection(self, coln, catg, page=page+1, results=results)
+            await self.fetch_apps_by_collection(coln, catg, page=page+1, results=results)
 
     async def discover_apps(self):
         for coln in COLLECTIONS[:]:
