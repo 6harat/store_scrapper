@@ -1,0 +1,6 @@
+play-scraper>=0.5.2
+aiohttp>=3.5.4
+aiodns>=1.2.0
+cchardet>=2.1.4
+beautifulsoup4==4.6.1
+pydash>=4.7.4
