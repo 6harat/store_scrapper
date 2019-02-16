@@ -1,7 +1,14 @@
 import logging as log
+from logging.handlers import RotatingFileHandler
 import calendar
 import time
 import os
+from play_helper import(
+    parseInt,
+    isTrue,
+    MAX_LOG_FILE_SIZE,
+    LOG_BACKUP_COUNT
+)
 
 def setup_logging_and_provide_file_paths():
     for folder in ['log/', 'opt/']:
@@ -18,11 +25,18 @@ def setup_logging_and_provide_file_paths():
         extension
     )
     log_file_path = get_file_name('log', 'log')
+    rotating_log_handler = RotatingFileHandler(
+        log_file_path,
+        maxBytes=MAX_LOG_FILE_SIZE,
+        backupCount=LOG_BACKUP_COUNT
+    )
     log.basicConfig(
-        filename=log_file_path,
         format='%(asctime)s,%(msecs)d %(levelname)-5s [%(filename)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d:%H:%M:%S',
-        level=log.DEBUG
+        level=log.DEBUG,
+        handlers=[
+            rotating_log_handler
+        ]
     )
 
     opt_file_path_prefix = get_file_prefix('opt')
@@ -32,13 +46,6 @@ from aiohttp import web
 from play_fetch import PlayFetch as pf
 from play_manager import PlayManager as pm
 import json
-from play_helper import(
-    parseInt,
-    isTrue
-)
-from constants import(
-    MAX_WORKERS
-)
 import asyncio
 
 routes = web.RouteTableDef()
