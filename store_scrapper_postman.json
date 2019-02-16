@@ -1,0 +1,539 @@
+{
+	"info": {
+		"_postman_id": "c717ac7d-f4bb-4306-bac2-415764034b05",
+		"name": "StoreScrapperApi",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "PlaySearch",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "start",
+							"value": "0",
+							"type": "text"
+						},
+						{
+							"key": "num",
+							"value": "0",
+							"type": "text"
+						},
+						{
+							"key": "numChildren",
+							"value": "0",
+							"type": "text"
+						},
+						{
+							"key": "pagTok",
+							"value": "-p6BnQMCCDE=:S:ANO1ljJ4Cw8",
+							"type": "text",
+							"disabled": true
+						},
+						{
+							"key": "clp",
+							"value": "ggEgChphaXIuY29tLmx1bmltZS5wb2NrZXRjaGliaRoCCAA=:S:ANO1ljKR9Ys",
+							"type": "text"
+						},
+						{
+							"key": "pagtt",
+							"value": "3",
+							"type": "text"
+						},
+						{
+							"key": "cctcss",
+							"value": "square-cover",
+							"type": "text"
+						},
+						{
+							"key": "cllayout",
+							"value": "NORMAL",
+							"type": "text"
+						},
+						{
+							"key": "ipf",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "xhr",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "token",
+							"value": "9P-jas6Cnwgpc0jjEKvb3ZVTWYc:1549995138692",
+							"type": "text",
+							"disabled": true
+						}
+					]
+				},
+				"url": {
+					"raw": "https://play.google.com/store/apps/collection/search_results_cluster_apps?gsr=CiOCASAKGmFpci5jb20ubHVuaW1lLnBvY2tldGNoaWJpGgIIAA%3D%3D%3AS%3AANO1ljJ5QhA&authuser=0",
+					"protocol": "https",
+					"host": [
+						"play",
+						"google",
+						"com"
+					],
+					"path": [
+						"store",
+						"apps",
+						"collection",
+						"search_results_cluster_apps"
+					],
+					"query": [
+						{
+							"key": "gsr",
+							"value": "CiOCASAKGmFpci5jb20ubHVuaW1lLnBvY2tldGNoaWJpGgIIAA%3D%3D%3AS%3AANO1ljJ5QhA"
+						},
+						{
+							"key": "authuser",
+							"value": "0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "PlaySearchPage",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://play.google.com/store/search?q=air.com.lunime.pocketchibi&c=apps",
+					"protocol": "https",
+					"host": [
+						"play",
+						"google",
+						"com"
+					],
+					"path": [
+						"store",
+						"search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "air.com.lunime.pocketchibi"
+						},
+						{
+							"key": "c",
+							"value": "apps"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Detail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/detail?app_id=com.candywriter.bitlife",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"detail"
+					],
+					"query": [
+						{
+							"key": "app_id",
+							"value": "com.candywriter.bitlife"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Collection",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/collection?catg_id=GAME&coln_id=NEW_FREE&page=0&results=120",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"collection"
+					],
+					"query": [
+						{
+							"key": "catg_id",
+							"value": "GAME"
+						},
+						{
+							"key": "coln_id",
+							"value": "NEW_FREE"
+						},
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "results",
+							"value": "120"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Similar",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/similar?app_id=com.clement.ballmayhem",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"similar"
+					],
+					"query": [
+						{
+							"key": "app_id",
+							"value": "com.clement.ballmayhem"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/start",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Stop",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/stop?pid=efdd2eee-31d5-11e9-bb20-14109fd5c42b&show_records=true",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"stop"
+					],
+					"query": [
+						{
+							"key": "pid",
+							"value": "efdd2eee-31d5-11e9-bb20-14109fd5c42b"
+						},
+						{
+							"key": "show_records",
+							"value": "true"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Peek",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/peek?pid=69c489ee-31ba-11e9-bd31-14109fd5c42b",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"peek"
+					],
+					"query": [
+						{
+							"key": "pid",
+							"value": "69c489ee-31ba-11e9-bd31-14109fd5c42b"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "View",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/view",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"view"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Shield",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d267f4ff-2468-44c3-89d5-d907fcd11d91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8384/shield",
+					"host": [
+						"localhost"
+					],
+					"port": "8384",
+					"path": [
+						"shield"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
