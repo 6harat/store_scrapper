@@ -1,4 +1,4 @@
-# store_scrapper
+# STORE SCRAPPER
 Program to collect information about games available on Google Play Store
 
 # STEPS:
