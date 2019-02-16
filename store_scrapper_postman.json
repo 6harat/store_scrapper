@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "c717ac7d-f4bb-4306-bac2-415764034b05",
-		"name": "StoreScrapperApi",
+		"name": "StoreScrapper",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -356,11 +356,8 @@
 					}
 				}
 			],
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
 			"request": {
-				"method": "GET",
+				"method": "POST",
 				"header": [
 					{
 						"key": "Content-Type",
@@ -375,7 +372,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "localhost:8384/stop?pid=efdd2eee-31d5-11e9-bb20-14109fd5c42b&show_records=true",
+					"raw": "localhost:8384/stop?pid=816aa09e-31db-11e9-86aa-14109fd5c42b&show_records=true",
 					"host": [
 						"localhost"
 					],
@@ -386,7 +383,7 @@
 					"query": [
 						{
 							"key": "pid",
-							"value": "efdd2eee-31d5-11e9-bb20-14109fd5c42b"
+							"value": "816aa09e-31db-11e9-86aa-14109fd5c42b"
 						},
 						{
 							"key": "show_records",
@@ -430,7 +427,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "localhost:8384/peek?pid=69c489ee-31ba-11e9-bd31-14109fd5c42b",
+					"raw": "localhost:8384/peek?pid=816aa09e-31db-11e9-86aa-14109fd5c42b",
 					"host": [
 						"localhost"
 					],
@@ -441,7 +438,7 @@
 					"query": [
 						{
 							"key": "pid",
-							"value": "69c489ee-31ba-11e9-bd31-14109fd5c42b"
+							"value": "816aa09e-31db-11e9-86aa-14109fd5c42b"
 						}
 					]
 				}
@@ -494,7 +491,7 @@
 			"response": []
 		},
 		{
-			"name": "Shield",
+			"name": "Flush",
 			"event": [
 				{
 					"listen": "test",
@@ -523,13 +520,23 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "localhost:8384/shield",
+					"raw": "localhost:8384/flush?pid=efdd2eee-31d5-11e9-bb20-14109fd5c42b&show_records=true",
 					"host": [
 						"localhost"
 					],
 					"port": "8384",
 					"path": [
-						"shield"
+						"flush"
+					],
+					"query": [
+						{
+							"key": "pid",
+							"value": "efdd2eee-31d5-11e9-bb20-14109fd5c42b"
+						},
+						{
+							"key": "show_records",
+							"value": "true"
+						}
 					]
 				}
 			},
