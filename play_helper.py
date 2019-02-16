@@ -11,8 +11,8 @@ def isTrue(value):
 def colored_print(info):
     print("\033[96m {}\033[00m" .format(info))
 
-MAX_LOG_FILE_SIZE = 20 * 1024 * 1024
-LOG_BACKUP_COUNT = 10
+MAX_LOG_FILE_SIZE = 25 * 1024 * 1024
+LOG_BACKUP_COUNT = 20
 MAX_RECORD_SIZE_PER_PAGE = 120
 NO_RECORD_FOUND = object()
 
