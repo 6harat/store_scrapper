@@ -10,6 +10,7 @@ from play_scraper import (
 )
 from bs4 import BeautifulSoup, SoupStrainer
 from pydash import omit as omit_
+import logging as log
 
 UNWANTED_KEYS = [
     'description_html',
@@ -28,7 +29,7 @@ def prune_data(data):
 class PlayFetch():
 
     def __init__(self, persist=False, headers=utils.default_headers(), timeout=30, hl='en', gl='us'):
-        print('*** inside PlayFetch.__init__ ***')
+        log.info('*** inside PlayFetch.__init__ ***')
         self._headers = headers
         self._timeout = ClientTimeout(total=timeout)
         self._params = dict(
@@ -38,7 +39,7 @@ class PlayFetch():
         self._persist = persist
 
     async def __aenter__(self):
-        print('*** inside PlayFetch.__aenter__ ***')
+        log.info('*** inside PlayFetch.__aenter__ ***')
         self._session = ClientSession(
             headers=self._headers,
             timeout=self._timeout
@@ -46,18 +47,18 @@ class PlayFetch():
         return self
 
     async def __aexit__(self, *err):
-        print('*** inside PlayFetch.__aexit__ ***')
+        log.info('*** inside PlayFetch.__aexit__ ***')
         if not self._persist:
             await self._session.close()
             self._session = None
 
     async def force_close(self):
-        print('### forcefully closing session ###')
+        log.info('*** forcefully closing session ***')
         if self._session and not self._session.closed:
             try:
                 await self._session.close()
             except:
-                print('@@@ session already closed @@@')
+                log.warning('### session already closed ###')
             finally:
                 self._session = None
 
