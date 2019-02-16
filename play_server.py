@@ -6,6 +6,7 @@ import os
 from play_helper import(
     parseInt,
     isTrue,
+    colored_print,
     MAX_LOG_FILE_SIZE,
     LOG_BACKUP_COUNT
 )
@@ -207,11 +208,16 @@ async def peek(request):
         logfile=app['log_file_path']
     ))
 
+async def on_startup(app):
+    print('======== Starting Play Manager Server ========')
+    colored_print('(Press CTRL+C only ONCE for quitting otherwise data dump will fail)\n')
+
 async def on_shutdown(app):
     log.info('*** gracefully shutting down pending managers ***')
+    print('\n======== Gracefully shutting down [{}] Managers ========'.format(len(app['managers'])))
+    colored_print('(DON\'T press CTRL+C again)')
     for manager in app['managers'].values():
         await manager.shutdown()
-
 
 if __name__ == '__main__':
     log_file_path, opt_file_path_prefix = setup_logging_and_provide_file_paths()
@@ -220,9 +226,10 @@ if __name__ == '__main__':
         port=8384
     )
     app = web.Application()
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
     app['managers'] = dict()
     app['opt_file_path_prefix'] = opt_file_path_prefix
     app['log_file_path'] = log_file_path
-    app.on_shutdown.append(on_shutdown)
     app.add_routes(routes)
     web.run_app(app, **app_args)
