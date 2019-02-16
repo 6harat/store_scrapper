@@ -26,7 +26,9 @@ Program to collect information about games available on Google Play Store
     - install Postman on desktop [https://www.getpostman.com/downloads/] or add plugin to Chrome [https://chrome.google.com/webstore/detail/postman/fhbjgbiflinjbdggehcddcbncdddomop?hl=en]
     - open Postman and click on import and choose the `store_scrapper/store_scrapper_postman.json` file.
     - use the following APIs for the listed tasks:
-        * see all active managers:              `GET`   _View_      `/view`
+        * see all active managers:
+            > Collection Name: `GET`   _View_
+            > Path: `/view`
         * start a new manager:                  `POST`  _Start_     `/start`
         * peek an existing manager:             `GET`   _Peek_      `/peek?pid=<pid>`
         * flush records of an existing manager: `POST`  _Flush_ (NOT YET IMPLEMENTED)  
