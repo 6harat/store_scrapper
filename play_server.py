@@ -103,8 +103,8 @@ async def view(request):
     if not managers:
         return web.json_response(dict(
             message='NO_ACTIVE_MANAGERS_FOUND',
-            logfile=app['log_file_path']
-        ))
+            details='Process not found or already killed'
+        ), status=404)
     return web.json_response(dict(
         message='ACTIVE_MANAGERS_FOUND',
         managers=list(map(
@@ -143,7 +143,7 @@ async def stop(request):
         return web.json_response(dict(
             message='NOT_FOUND',
             details='Process not found or already killed'
-        ), status=422)
+        ), status=404)
     await manager.shutdown()
     app['managers'].pop(manager.id, None)
     warnings = [] if manager.is_dumped else [ 'UNABLE_TO_DUMP_DATA_TO_FILE' ]
