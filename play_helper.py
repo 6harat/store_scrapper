@@ -6,7 +6,7 @@ def parseInt(num, default=0):
     return default if not num or not num.isdigit() else int(num)
 
 def isTrue(value):
-    return value and isinstance(value, str) and value.lower() == 'true'
+    return (isinstance(value, bool) and value) or (isinstance(value, str) and value.lower() == 'true')
 
 def colored_print(info):
     print("\033[96m {}\033[00m" .format(info))

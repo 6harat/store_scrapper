@@ -127,10 +127,10 @@ async def start(request):
             logfile=app['log_file_path']
         ))
 
-@routes.get('/stop')
+@routes.post('/stop')
 async def stop(request):
     pid = request.query.get('pid')
-    show_records = request.query.get('show_records')
+    show_records = isTrue(request.query.get('show_records'))
     log.info('*** stopping process manager: {} ***'.format(pid))
     if pid is None:
         return web.json_response(dict(
@@ -155,12 +155,16 @@ async def stop(request):
         total_time_taken=manager.time_taken,
         logfile=app['log_file_path'],
         optfile=manager.opt_path,
-        records=manager.records if isTrue(show_records) else None
+        records=manager.records if show_records else None
     ))
 
-@routes.get('/flush')
+@routes.post('/flush')
 async def flush(request):
+    """
+    Not yet implemented
+    """
     pid = request.query.get('pid')
+    show_records = isTrue(request.query.get('show_records'))
     log.info('*** flushing process manager: {} ***'.format(pid))
     if pid is None:
         return web.json_response(dict(
@@ -175,13 +179,9 @@ async def flush(request):
             details='Process not found or already killed'
         ), status=422)
     return web.json_response(dict(
-        message='RESULTS_FLUSHED',
-        process_id=pid,
-        records_collected='',
-        time_elapsed='',
-        logfile=app['log_file_path'],
-        optfile=''
-    ))
+        message='METHOD_NOT_ALLOWED',
+        details='Implementation pending'
+    ), status=405)
 
 @routes.get('/peek')
 async def peek(request):
