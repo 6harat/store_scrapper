@@ -35,6 +35,7 @@ class PlayManager():
             self.id
         )
         self.is_dumped = False
+        self._shutdown_tasks = []
 
     def peek(self):
         opt = dict(
@@ -113,10 +114,7 @@ class PlayManager():
         self.records_found = len(games)
         self.records = list(self.info_map.keys())
 
-    async def shutdown(self):
-        log.info('*** shutting down manager: {} ***'.format(self.id))
-        if self.is_cancelled:
-            return
+    async def _shutdown(self):
         self.is_cancelled = True
         await self._terminate_tasks()
 
@@ -131,6 +129,15 @@ class PlayManager():
         self.stop_datetime = time.ctime()
         log.info('*** manager: {} successfully shut ***'.format(self.id))
 
+    async def shutdown(self):
+        if self.is_cancelled:
+            log.info('*** awaiting previously initiated shut down manager: {} ***'.format(self.id))
+            return await asyncio.gather(*self._shutdown_tasks)
+        log.info('*** shutting down manager: {} ***'.format(self.id))
+        task = self._loop.create_task(self._shutdown())
+        self._shutdown_tasks.append(task)
+        await task
+
     @staticmethod
     def _has_more_records(records, page_size):
         return records and len(records) == page_size
@@ -141,10 +148,6 @@ class PlayManager():
         if app_info != NO_RECORD_FOUND:
             return False
         self.info_map[app_id] = game
-        self._register_task(
-            self.fetch_app_details(app_id),
-            shield=True
-        )
         return True
 
     def _persist_and_determine_recent_apps(self, games):
