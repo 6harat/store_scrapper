@@ -61,11 +61,13 @@ Program to collect information about games available on Google Play Store
     + execute_command:    `deactivate`                      (or equivalent windows deactivate cmd)
 
 # TODOS:
-- [ ] add support to read the past json file first and then start executing again so as to aggregate data over and above the one previously collected.
-- [ ] tweak `hl` and `gl` params in `play_scraper.collection` and `play_scraper.similar` fucntion calls if they yield new games.
-- [ ] experiment with `play_scraper.search` if it can help gather more records.
-- [x] use separate event loops in separate threads for each manager and keep the REST API event loop separate to increase throughput.
-- [x] add support for retry on failure.
-- [x] gracefully shutdown processes before exit.
-- [ ] investigate TODO issues mentioned inline in code.
-- [ ] use asyncio.shield to protect the important tasks. for details: https://stackoverflow.com/a/52511210/6687477
+- [x] use separate event loops for crawling and server interaction
+- [x] implement retry on failures for requests and file writes
+- [x] gracefully shutdown processes before exit
+- [ ] investigate TODO issues mentioned inline in code
+- [ ] use asyncio.shield to protect the important tasks (https://stackoverflow.com/a/52511210/6687477)
+- [ ] implement flush feature
+- [ ] implement search feature
+- [ ] implement previous result aggregation feature
+- [ ] implement manager for collecting details of aggregated records
+- [ ] experiment with `hl` and `gl` query params to gather more records

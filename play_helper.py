@@ -12,7 +12,7 @@ def colored_print(info):
     print("\033[96m {}\033[00m" .format(info))
 
 MAX_LOG_FILE_SIZE = 25 * 1024 * 1024
-LOG_BACKUP_COUNT = 20
+LOG_BACKUP_COUNT = 50
 MAX_GAME_INFO_PER_OPT_FILE = 25000
 MAX_RECORD_SIZE_PER_PAGE = 120
 NO_RECORD_FOUND = object()
