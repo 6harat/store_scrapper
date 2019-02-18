@@ -4,20 +4,77 @@ import time
 import logging as log
 import json
 import concurrent
+import threading
 
-from uuid import uuid1 as uid
+from play_fetch import PlayFetch as pf
 
 from play_helper import(
     COLLECTIONS,
     CATEGORIES,
     NO_RECORD_FOUND,
-    MAX_RECORD_SIZE_PER_PAGE
+    MAX_RECORD_SIZE_PER_PAGE,
+    MAX_GAME_INFO_PER_OPT_FILE
 )
 
-class PlayManager():
-    def __init__(self, play, opt_path_prefix):
+CANCELLED_STATUSES = [
+    'SHUTDOWN_INITIATED', 'TERMINATED', 'CORRUPTED'
+]
+
+CLOSED_STATUSES = [
+    'TERMINATED', 'CORRUPTED'
+]
+
+async def activate_manager(context):
+    async with pf(persist=True) as play:
+        manager_id = context.get('manager_id')
+        manager = PlayManager(manager_id, play, context.get('opt_file_prefix'), is_delegated=True)
+        manager_info_map = context.get('manager_info_map')
+        if manager_info_map:
+            manager_info_map[manager_id] = manager
+        await manager.discover_apps()
+
+def delegate_manager(context):
+    thread_name = threading.currentThread().getName()
+    log.debug('*** thread: {} trying to delgate a new manager ***'.format(thread_name))
+    try:
+        loop = asyncio.new_event_loop()
+    except RuntimeError:
+        log.exception('@@@ failed to create event loop for thread: {} @@@'.format(thread_name))
+        loop = asyncio.new_event_loop()
+        manager_id = context.get('manager_id')
+        manager_info = context.get('manager_info_map').get(manager_id)
+        if manager_info:
+            manager_info.statu
+    else:
+        log.debug('*** successfully created event loop for thread: {} ***'.format(thread_name))
+        loop.create_task(activate_manager(context))
+        loop.run_forever()
+        try:
+            loop.close()
+        except:
+            log.exception('@@@ failed to close loop for thread: {} @@@'.format(thread_name))
+        else:
+            log.info('*** successfully closed loop for thread: {} ***'.format(thread_name))
+
+class InitiatedPlayManager():
+    def __init__(self, manager_id, status='INITIATED'):
+        self.id = manager_id
+        self.status = status
+        self.failures = []
+    def peek(self):
+        return dict(
+            process_id=self.id,
+            status=self.status
+        )
+    def fail_to_initialize(self, cause):
+        self.status = 'CORRUPTED'
+        self.failures.append('INITIALIZATION_FAILURE')
+        log.error('@@@ failed to initialize the manager: {}, cause is: {} @@@'.format(self.id, cause))
+
+class PlayManager(InitiatedPlayManager):
+    def __init__(self, manager_id, play, opt_path_prefix, is_delegated=False):
         log.info('*** inside PlayManager.__init__ ***')
-        self.id = str(uid())
+        super().__init__(manager_id, status='RUNNING')
         self._loop = asyncio.get_event_loop()
         self._play = play
         self.info_map = dict()
@@ -29,28 +86,44 @@ class PlayManager():
         self.time_taken = 0
         self.records_found = 0
         self.records = []
-        self.is_cancelled = False
         self.opt_path = '{}_{}.json'.format(
             opt_path_prefix,
             self.id
         )
-        self.is_dumped = False
+        self.is_successfully_dumped = None
         self._shutdown_tasks = []
+        self.is_delegated = is_delegated
 
-    def peek(self):
+    def is_cancelled(self):
+        return self.status in CANCELLED_STATUSES
+        
+    def peek(self, show_records=False):
         opt = dict(
             process_id=self.id,
+            status=self.status,
             started_at=self.start_datetime,
             stopped_at=self.stop_datetime,
-            is_cancelled=self.is_cancelled,
-            time_elapsed=time.time() - self._start_time,
-            records_collected=len(list(self.info_map.keys()))
+            failures=self.failures
         )
+        if self.status in CLOSED_STATUSES:
+            opt.update(dict(
+                time_taken=self.time_taken,
+                optfile=self.opt_path,
+                records_collected=self.records_found
+            ))
+        else:
+            opt.update(dict(
+                time_elapsed=time.time() - self._start_time,
+                records_collected=len(list(self.info_map.keys()))
+            ))
+        
+        if show_records:
+            opt['records'] = self.records
         log.info('*** peek results for manager [{}]: {}'.format(self.id, opt))
         return opt
     
     def _register_task(self, coro, shield=False):
-        if not self.is_cancelled:
+        if not self.is_cancelled():
             task = self._loop.create_task(coro)
             if shield:
                 self._shielded_tasks.append(task)
@@ -59,6 +132,9 @@ class PlayManager():
 
     async def _terminate_tasks(self):
         log.info('*** terminating tasks for manager: {} ***'.format(self.id))
+        # TODO: All tasks are not getting properly terminated
+        # $ref: Exception #3 @ observed_error.log
+
         for task in self._tasks:
             if not task.done():
                 try:
@@ -66,7 +142,7 @@ class PlayManager():
                     log.info('*** task successfully cancelled ***')
                 except asyncio.CancelledError:
                     log.warning('### task already cancelled ###')
-                except Exception:
+                except:
                     log.exception('@@@ unkown exception while cancelling task @@@')
         if self._shielded_tasks:
             try:
@@ -80,44 +156,74 @@ class PlayManager():
                 log.info('$$$ printing shielded tasks $$$')
                 log.info(self._shielded_tasks)
 
-    def _terminate_loop(self):
-        """
-        UNUSED_FUNCTION: To be removed
-        """
+    def _stop_loop(self):
         log.info('*** terminating loop for manager: {} ***'.format(self.id))
         try:
             if self._loop.is_running():
                 self._loop.stop()
-            if not self._loop.is_closed():
-                self._loop.close()
-        except Exception:
-            log.exception('@@@ unknown exception while terminating loop @@@')
+        except:
+            log.exception('@@@ failed to stop loop for manager: {} @@@'.format(self.id))
         else:
-            log.info('*** successfully terminated loop ***')
+            log.info('*** successfully stopped loop for manager: {} ***'.format(self.id))
+
+    def _write_to_file_with_retry(self, file_idx, records, retry=2):
+        if retry <= 0:
+            return False
+        try:
+            file_path = '{}.{}'.format(self.opt_path, file_idx)
+            log.info('*** attempting to write data to file: {} ***'.format(file_path))
+            with open(file_path, 'w') as opt_file:
+                json.dump(records, opt_file)
+        except:
+            log.exception('@@@ failed to dump data to file: {} @@@'.format(file_path))
+            return self._write_to_file_with_retry(file_idx, records, retry=retry-1)
+        else:
+            return True
 
     def _dump_data(self):
         log.info('*** dumping data for manager: {} ***'.format(self.id))
         if not self.info_map:
             log.warning('### no records found ###')
+            return
         games = list(self.info_map.values())
-        try:
-            log.info('*** attempting to write data to file: {} ***'.format(self.opt_path))
-            with open(self.opt_path, 'w') as opt_file:
-                json.dump(games, opt_file)
-        except IOError:
-            log.exception('@@@ io error while dumping data to file: {} @@@'.format(self.opt_path))
-        except:
-            log.exception('@@@ unknown error encountered while dumping data to file: {} @@@'.format(self.opt_path))
+        file_idx = 0
+        selected_games = games[
+            file_idx * MAX_GAME_INFO_PER_OPT_FILE:
+            (file_idx + 1) * MAX_GAME_INFO_PER_OPT_FILE
+        ]
+        while selected_games:
+            log.info('*** dumping data for manager: {}, file_idx: {}, selected_games: {} ***'.format(
+                self.id,
+                file_idx,
+                len(selected_games)
+            ))
+            dump_result = self._write_to_file_with_retry(file_idx, selected_games)
+            self.is_successfully_dumped = dump_result if file_idx == 0 else (
+                dump_result and self.is_successfully_dumped
+            )
+            file_idx += 1
+            selected_games = games[
+                file_idx * MAX_GAME_INFO_PER_OPT_FILE:
+                (file_idx + 1) * MAX_GAME_INFO_PER_OPT_FILE
+            ]
+        
+        if self.is_successfully_dumped:
+            log.info('*** successfully dumped data for manager: {} ***'.format(self.id))
         else:
-            self.is_dumped = True
-            log.info('*** data successfully dumped at: {} ***'.format(self.opt_path))
+            self.failures.append('DATA_DUMP_FAILURE')
+            log.info('*** failed to properly dump data for manager: {} ***'.format(self.id))
         self.records_found = len(games)
         self.records = list(self.info_map.keys())
 
-    async def _shutdown(self):
-        self.is_cancelled = True
-        await self._terminate_tasks()
+    def _release_heavy_objects(self):
+        if self.is_delegated:
+            self.info_map = {}
+            self._tasks = []
+            self._shielded_tasks = []
+            self._shutdown_tasks = []
 
+    async def _shutdown(self, callback=None):
+        await self._terminate_tasks()
         await self._play.force_close()
         self.time_taken = time.time() - self._start_time
         self._dump_data()
@@ -127,16 +233,25 @@ class PlayManager():
             self.time_taken
         ))
         self.stop_datetime = time.ctime()
+        self.status = 'TERMINATED'
+        self._release_heavy_objects()
+        if callable(callback):
+            callback(self)
         log.info('*** manager: {} successfully shut ***'.format(self.id))
+        self._stop_loop()
 
-    async def shutdown(self):
-        if self.is_cancelled:
+    async def shutdown(self, callback=None):
+        if not self.is_delegated and self.is_cancelled():
             log.info('*** awaiting previously initiated shut down manager: {} ***'.format(self.id))
-            return await asyncio.gather(*self._shutdown_tasks)
+            await asyncio.gather(*self._shutdown_tasks)
+            return self.peek()
         log.info('*** shutting down manager: {} ***'.format(self.id))
-        task = self._loop.create_task(self._shutdown())
+        self.status = 'SHUTDOWN_INITIATED'
+        task = self._loop.create_task(self._shutdown(callback))
         self._shutdown_tasks.append(task)
-        await task
+        if not self.is_delegated:
+            await task
+        return self.peek()
 
     @staticmethod
     def _has_more_records(records, page_size):
@@ -157,7 +272,7 @@ class PlayManager():
         ))
 
     async def _retriable_request(self, task, retry_limit=3, shield=False):
-        if retry_limit <= 0 or (self.is_cancelled and not shield):
+        if retry_limit <= 0 or (self.is_cancelled() and not shield):
             return None
         try:
             opt = await task()
@@ -167,11 +282,10 @@ class PlayManager():
         except concurrent.futures._base.CancelledError:
             log.warning('### failed due to cancellation ###')
             opt = None
-        except Exception:
+        except:
             log.exception('@@@ retrying on unknown exception @@@')
             opt = await self._retriable_request(task, retry_limit-1, shield=shield)
-        finally:
-            return opt
+        return opt
 
     async def _play_gatherer(self, task):
         games = await self._retriable_request(task)

@@ -8,7 +8,9 @@ from play_helper import(
     isTrue,
     colored_print,
     MAX_LOG_FILE_SIZE,
-    LOG_BACKUP_COUNT
+    LOG_BACKUP_COUNT,
+    EXECUTOR_POOL_SIZE,
+    EXECUTOR_THREAD_PREFIX
 )
 
 def setup_logging_and_provide_file_paths():
@@ -32,7 +34,7 @@ def setup_logging_and_provide_file_paths():
         backupCount=LOG_BACKUP_COUNT
     )
     log.basicConfig(
-        format='%(asctime)s,%(msecs)d %(levelname)-5s [%(filename)s:%(lineno)d] %(message)s',
+        format='%(asctime)s,%(msecs)d %(levelname)-5s [%(threadName)s | %(filename)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d:%H:%M:%S',
         level=log.DEBUG,
         handlers=[
@@ -45,9 +47,21 @@ def setup_logging_and_provide_file_paths():
 
 from aiohttp import web
 from play_fetch import PlayFetch as pf
-from play_manager import PlayManager as pm
+from play_manager import (
+    InitiatedPlayManager as ipm,
+    PlayManager as pm,
+    delegate_manager,
+    CANCELLED_STATUSES,
+)
 import json
 import asyncio
+from uuid import uuid1 as uid
+from concurrent.futures import ThreadPoolExecutor
+
+executor_pool = ThreadPoolExecutor(
+    max_workers=EXECUTOR_POOL_SIZE,
+    thread_name_prefix=EXECUTOR_THREAD_PREFIX
+)
 
 routes = web.RouteTableDef()
 
@@ -117,20 +131,23 @@ async def view(request):
 @routes.post('/start')
 async def start(request):
     log.info('*** starting new process manager ***')
-    async with pf(persist=True) as play:
-        manager = pm(play, app['opt_file_path_prefix'])
-        app['managers'][manager.id] = manager
-        await manager.discover_apps()
-        return web.json_response(dict(
-            message='PROCESS_STARTED',
-            process_id=manager.id,
-            logfile=app['log_file_path']
-        ))
+    manager_id = str(uid())
+    app['managers'][manager_id] = ipm(manager_id)
+    context = dict(
+        opt_file_prefix=app['opt_file_path_prefix'],
+        manager_info_map=app['managers'],
+        manager_id=manager_id
+    )
+    executor_pool.map(delegate_manager, [context])
+    return web.json_response(dict(
+        message='PROCESS_INITIATED',
+        process_id=manager_id,
+        logfile=app['log_file_path']
+    ))
 
 @routes.post('/stop')
 async def stop(request):
     pid = request.query.get('pid')
-    show_records = isTrue(request.query.get('show_records'))
     log.info('*** stopping process manager: {} ***'.format(pid))
     if pid is None:
         return web.json_response(dict(
@@ -144,18 +161,28 @@ async def stop(request):
             message='NOT_FOUND',
             details='Process not found or already killed'
         ), status=404)
-    await manager.shutdown()
-    app['managers'].pop(manager.id, None)
-    warnings = [] if manager.is_dumped else [ 'UNABLE_TO_DUMP_DATA_TO_FILE' ]
+    elif manager.status == 'INITIATED':
+        return web.json_response(dict(
+            message='CANNOT_KILL_MANAGER_UNTIL_FULLY_INITIATED',
+            details='Cannot kill a manager at the time of initiation'
+        ), status=422)
+
+    if manager.is_delegated:
+        if not manager.is_cancelled():
+            opt = await manager.shutdown()
+            message='STOP_INITIATED'
+        else:
+            opt = manager.peek()
+            message='PROCESS_STOPPED' if manager.status == 'TERMINATED' else 'STOP_INITIATED'
+    else:
+        opt = await manager.shutdown()
+        message='PROCESS_STOPPED'
+        app['managers'].pop(manager.id, None)
+
     return web.json_response(dict(
-        message='PROCESS_STOPPED',
-        warnings=warnings,
-        process_id=pid,
-        records_collected=manager.records_found,
-        total_time_taken=manager.time_taken,
-        logfile=app['log_file_path'],
-        optfile=manager.opt_path,
-        records=manager.records if show_records else None
+        opt,
+        message=message,
+        logfile=app['log_file_path']
     ))
 
 @routes.post('/flush')
@@ -178,6 +205,17 @@ async def flush(request):
             message='NOT_FOUND',
             details='Process not found or already killed'
         ), status=422)
+    elif manager.status == 'INITIATED':
+        return web.json_response(dict(
+            message='CANNOT_FLUSH_MANAGER_UNTIL_FULLY_INITIATED',
+            details='Cannot flush a manager at the time of initiation'
+        ), status=422)
+    elif manager.is_cancelled():
+        return web.json_response(dict(
+            message='CANNOT_FLUSH_MANAGER_IN_CANCELLED_STATE',
+            details='Cannot flush a manager in Cancelled {} status'.format(CANCELLED_STATUSES)
+        ), status=422)
+
     return web.json_response(dict(
         message='METHOD_NOT_ALLOWED',
         details='Implementation pending'
@@ -186,6 +224,7 @@ async def flush(request):
 @routes.get('/peek')
 async def peek(request):
     pid = request.query.get('pid')
+    show_records = isTrue(request.query.get('show_records'))
     log.info('*** peeking process manager: {} ***'.format(pid))
     if pid is None:
         return web.json_response(dict(
@@ -199,25 +238,28 @@ async def peek(request):
             message='NOT_FOUND',
             details='Process not found or already killed'
         ), status=422)
-    opt = manager.peek()
+    opt = manager.peek(
+        show_records=show_records
+    )
     return web.json_response(dict(
+        opt,
         message='PROCESS_PEEKED',
-        process_id=pid,
-        records_collected=opt.get('records_collected'),
-        time_elapsed=opt.get('time_elapsed'),
         logfile=app['log_file_path']
     ))
 
 async def on_startup(app):
-    print('======== Starting Play Manager Server ========')
+    print('========   Starting Google Play Crawler   ========')
     colored_print('(Press CTRL+C only ONCE for quitting otherwise data dump will fail)\n')
 
 async def on_shutdown(app):
     log.info('*** gracefully shutting down pending managers ***')
-    print('\n======== Gracefully shutting down [{}] Managers ========'.format(len(app['managers'])))
+    active_managers = list(filter(lambda manager: not manager.is_cancelled(), app['managers'].values()))
+    print('\n======== Shutting down [{}] active managers ========'.format(len(active_managers)))
     colored_print('(DON\'T press CTRL+C again)')
-    for manager in app['managers'].values():
+    for manager in active_managers:
         await manager.shutdown()
+    executor_pool.shutdown(wait=True)
+    print('======== Application gracefully terminated ========')
 
 if __name__ == '__main__':
     log_file_path, opt_file_path_prefix = setup_logging_and_provide_file_paths()
