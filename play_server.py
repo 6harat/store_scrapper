@@ -9,7 +9,9 @@ from play_helper import(
     colored_print,
     MAX_LOG_FILE_SIZE,
     LOG_BACKUP_COUNT,
-    EXECUTOR_LOOP_MANAGER_POISON
+    EXECUTOR_LOOP_MANAGER_POISON,
+    EXECUTOR_POOL_SIZE,
+    EXECUTOR_THREAD_PREFIX
 )
 
 def setup_logging_and_provide_file_paths():
@@ -59,7 +61,10 @@ from uuid import uuid1 as uid
 from concurrent.futures import ThreadPoolExecutor
 
 executor_pool_manager_q = Queue()
-executor_pool = ThreadPoolExecutor(max_workers=10)
+executor_pool = ThreadPoolExecutor(
+    max_workers=EXECUTOR_POOL_SIZE,
+    thread_name_prefix=EXECUTOR_THREAD_PREFIX
+)
 
 def terminate_manager_loop_on_done(q):
     print('*** manager loop terminator running ***')
@@ -190,6 +195,8 @@ async def stop(request):
         app['managers'].pop(manager.id, None)
         warnings = [] if manager.is_dumped else [ 'UNABLE_TO_DUMP_DATA_TO_FILE' ]
 
+    # TODO: Use peek here instead and move the warning logic to play manager itself
+    # and add the warning field to peek as well.
     return web.json_response(dict(
         message=message,
         warnings=warnings,
