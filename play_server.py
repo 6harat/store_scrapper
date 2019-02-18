@@ -9,7 +9,6 @@ from play_helper import(
     colored_print,
     MAX_LOG_FILE_SIZE,
     LOG_BACKUP_COUNT,
-    EXECUTOR_LOOP_MANAGER_POISON,
     EXECUTOR_POOL_SIZE,
     EXECUTOR_THREAD_PREFIX
 )
@@ -56,29 +55,14 @@ from play_manager import (
 )
 import json
 import asyncio
-from queue import Queue
 from uuid import uuid1 as uid
 from concurrent.futures import ThreadPoolExecutor
 
-executor_pool_manager_q = Queue()
 executor_pool = ThreadPoolExecutor(
     max_workers=EXECUTOR_POOL_SIZE,
     thread_name_prefix=EXECUTOR_THREAD_PREFIX
 )
 
-def terminate_manager_loop_on_done(q):
-    print('*** manager loop terminator running ***')
-    is_not_completed = True
-    while(is_not_completed):
-        entity = q.get()
-        log.info('*** q message received: {} ***'.format(entity))
-        if entity == EXECUTOR_LOOP_MANAGER_POISON:
-            log.info('*** received poison pill for executor loop manager ***')
-            is_not_completed = False
-        else:
-            entity.terminate_loop()
-            log.info('*** loop terminated for manager: {} ***'.format(entity.id))
-    print('*** manager loop terminator stopped ***')
 routes = web.RouteTableDef()
 
 @routes.get('/detail')
@@ -164,7 +148,6 @@ async def start(request):
 @routes.post('/stop')
 async def stop(request):
     pid = request.query.get('pid')
-    show_records = isTrue(request.query.get('show_records'))
     log.info('*** stopping process manager: {} ***'.format(pid))
     if pid is None:
         return web.json_response(dict(
@@ -186,27 +169,20 @@ async def stop(request):
 
     if manager.is_delegated:
         if not manager.is_cancelled():
-            await manager.shutdown(callback=post_manager_shutdown)
-        message='SHUTDOWN_INITIATED'
-        warnings = []
+            opt = await manager.shutdown()
+            message='STOP_INITIATED'
+        else:
+            opt = manager.peek()
+            message='PROCESS_STOPPED' if manager.status == 'TERMINATED' else 'STOP_INITIATED'
     else:
-        await manager.shutdown()
+        opt = await manager.shutdown()
         message='PROCESS_STOPPED'
         app['managers'].pop(manager.id, None)
-        warnings = [] if manager.is_dumped else [ 'UNABLE_TO_DUMP_DATA_TO_FILE' ]
 
-    # TODO: Use peek here instead and move the warning logic to play manager itself
-    # and add the warning field to peek as well.
     return web.json_response(dict(
+        opt,
         message=message,
-        warnings=warnings,
-        process_id=pid,
-        status=manager.status,
-        records_collected=manager.records_found,
-        total_time_taken=manager.time_taken,
-        logfile=app['log_file_path'],
-        optfile=manager.opt_path,
-        records=manager.records if show_records else None
+        logfile=app['log_file_path']
     ))
 
 @routes.post('/flush')
@@ -248,6 +224,7 @@ async def flush(request):
 @routes.get('/peek')
 async def peek(request):
     pid = request.query.get('pid')
+    show_records = isTrue(request.query.get('show_records'))
     log.info('*** peeking process manager: {} ***'.format(pid))
     if pid is None:
         return web.json_response(dict(
@@ -261,21 +238,18 @@ async def peek(request):
             message='NOT_FOUND',
             details='Process not found or already killed'
         ), status=422)
-    opt = manager.peek()
+    opt = manager.peek(
+        show_records=show_records
+    )
     return web.json_response(dict(
         opt,
         message='PROCESS_PEEKED',
         logfile=app['log_file_path']
     ))
 
-def post_manager_shutdown(manager):
-    log.info('*** received shutdown callback for manager: {} ***'.format(manager.id))
-    executor_pool_manager_q.put(manager)
-
 async def on_startup(app):
     print('========   Starting Google Play Crawler   ========')
     colored_print('(Press CTRL+C only ONCE for quitting otherwise data dump will fail)\n')
-    executor_pool.map(terminate_manager_loop_on_done, [executor_pool_manager_q])
 
 async def on_shutdown(app):
     log.info('*** gracefully shutting down pending managers ***')
@@ -284,7 +258,6 @@ async def on_shutdown(app):
     colored_print('(DON\'T press CTRL+C again)')
     for manager in active_managers:
         await manager.shutdown()
-    executor_pool_manager_q.put(EXECUTOR_LOOP_MANAGER_POISON)
     executor_pool.shutdown(wait=True)
     print('======== Application gracefully terminated ========')
 
