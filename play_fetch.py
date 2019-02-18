@@ -127,6 +127,8 @@ class PlayFetch():
             utils.parse_card_info, 
             soup.select('div[data-uitype="500"]')
         ))
+        # TODO: soup parsing failing for certain scenarios
+        # $ref: Exception #1 @ observed_error.log
         return prune_data(apps)
 
     async def similar(self, app_id):

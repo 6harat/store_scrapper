@@ -67,3 +67,4 @@ Program to collect information about games available on Google Play Store
 - [ ] use separate event loops in separate threads for each manager and keep the REST API event loop separate to increase throughput.
 - [x] add support for retry on failure.
 - [x] gracefully shutdown processes before exit.
+- [ ] investigate TODO issues mentioned inline in code.
