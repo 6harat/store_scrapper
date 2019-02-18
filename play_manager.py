@@ -45,6 +45,8 @@ def delegate_manager(context):
         log.debug('*** successfully created event loop for thread: {} ***'.format(thread_name))
         loop.create_task(activate_manager(context))
         loop.run_forever()
+        # TODO: to solve the loop unable to close problem follow this: 
+        # https://asyncio.readthedocs.io/en/latest/hello_world.html#stopping-the-loop
 
 class InitiatedPlayManager():
     def __init__(self, manager_id, status='INITIATED'):
