@@ -450,10 +450,11 @@ class PlayManager(InitiatedPlayManager):
     async def fetch_detailed_info_on_done(self):
         await asyncio.gather(*self._tasks)
         log.info('*** successfully retrieved detailed info for apps by manager: {} ***'.format(self.id))
+        # TODO: rethink this logic as the manager is not getting terminated for fetch details case
         await self.shutdown(is_completed=True, wait=True)
 
     async def fetch_detailed_info_for_apps(self):
         self.load_previous_results()
-        for app_id in list(self.info_map.keys())[:10]:
+        for app_id in self.info_map.keys():
             self._register_task(self.fetch_app_details(app_id))
         self._loop.create_task(self.fetch_detailed_info_on_done())
