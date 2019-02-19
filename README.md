@@ -75,3 +75,6 @@ Program to collect information about games available on Google Play Store
 - [ ] `def func(key_arg=<default-value>)` does not populate `key_arg` with `<default-value>` when called as `func(key_arg=None)`. fix this logic in the entire code
 - [ ] make status as enum and map the fields depending upon status accordingly
 - [ ] leverage subclasses for properly distinguishing manager type
+- [ ] fix following error during program exit when `DETAILS` manager is run:
+    > /Users/bhgulati/Documents/harpoon/store_scrapper/lib/python3.7/site-packages/aiohttp/web.py:419: RuntimeWarning: coroutine 'PlayManager._shutdown' was never awaited
+    > _cancel_all_tasks(loop)
