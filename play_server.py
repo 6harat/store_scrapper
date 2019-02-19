@@ -10,7 +10,9 @@ from play_helper import(
     MAX_LOG_FILE_SIZE,
     LOG_BACKUP_COUNT,
     EXECUTOR_POOL_SIZE,
-    EXECUTOR_THREAD_PREFIX
+    EXECUTOR_THREAD_PREFIX,
+    SERVER_HOST,
+    SERVER_PORT
 )
 
 def setup_logging_and_provide_file_paths():
@@ -110,9 +112,25 @@ async def similar(request):
         opt = await play.similar(app_id)
         return web.json_response(opt)
 
+@routes.get('/search')
+async def search(request):
+    token = request.query.get('token')
+    page = parseInt(request.query.get('page'), default=0)
+    results = parseInt(request.query.get('results'), default=120)
+    log.info('*** fetching search result for token: {}; page: {}; results: {} ***'.format(token, page, results))
+    if token is None:
+        return web.json_response(dict(
+            message='MISSING_REQUIRED_PARAMETER',
+            location='query',
+            field='token'
+        ), status=400)
+    async with pf() as play:
+        opt = await play.search(token, page=page, results=results)
+        return web.json_response(opt)
+
 @routes.get('/view')
 async def view(request):
-    log.info('*** collecting manager ***')
+    log.info('*** collecting managers for view ***')
     managers = app['managers']
     if not managers:
         return web.json_response(dict(
@@ -131,10 +149,16 @@ async def view(request):
 @routes.post('/start')
 async def start(request):
     log.info('*** starting new process manager ***')
+    process_type = request.query.get('type')
+    read_dir = request.query.get('read_dir') or 'opt'
     manager_id = str(uid())
-    app['managers'][manager_id] = ipm(manager_id)
+    app['managers'][manager_id] = ipm(
+        manager_id, 
+        process_type=process_type,
+        read_dir=read_dir,
+        opt_path_prefix=app['opt_file_path_prefix']
+    )
     context = dict(
-        opt_file_prefix=app['opt_file_path_prefix'],
         manager_info_map=app['managers'],
         manager_id=manager_id
     )
@@ -254,6 +278,7 @@ async def on_startup(app):
 async def on_shutdown(app):
     log.info('*** gracefully shutting down pending managers ***')
     active_managers = list(filter(lambda manager: not manager.is_cancelled(), app['managers'].values()))
+    # TODO: correct this logic to await properly for which shutdown was initiated
     print('\n======== Shutting down [{}] active managers ========'.format(len(active_managers)))
     colored_print('(DON\'T press CTRL+C again)')
     for manager in active_managers:
@@ -264,8 +289,8 @@ async def on_shutdown(app):
 if __name__ == '__main__':
     log_file_path, opt_file_path_prefix = setup_logging_and_provide_file_paths()
     app_args = dict(
-        host='localhost',
-        port=8384
+        host=SERVER_HOST,
+        port=SERVER_PORT
     )
     app = web.Application()
     app.on_startup.append(on_startup)

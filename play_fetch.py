@@ -8,6 +8,7 @@ from play_scraper import (
     lists,
     settings
 )
+from urllib.parse import quote_plus
 from bs4 import BeautifulSoup, SoupStrainer
 from pydash import omit as omit_
 import logging as log
@@ -18,11 +19,13 @@ UNWANTED_KEYS = [
     'video'
 ]
 
+MAX_PAGE_SIZE_FOR_SEARCH = len(settings.PAGE_TOKENS) - 1
+
 def prune_data(data):
     if isinstance(data, dict):
         return omit_(data, *UNWANTED_KEYS)
     elif isinstance(data, list):
-        return list(map(lambda d: omit_(d, *UNWANTED_KEYS), data))
+        return list(map(prune_data, data))
     else:
         return data
 
@@ -139,6 +142,33 @@ class PlayFetch():
         except ClientResponseError as e:
             raise ValueError('INVALID_APPLICATION_ID: {app}. {error}'.format(
                 app=app_id,
+                error=e
+            ))
+        apps = list(map(
+            utils.parse_card_info, 
+            soup.select('div[data-uitype="500"]')
+        ))
+        return prune_data(apps)
+
+    async def search(self, token, results=None, page=0):
+        if page > MAX_PAGE_SIZE_FOR_SEARCH:
+            raise ValueError('Page value [{page}] must be between 0 and {page_limit}'.format(
+                page=page,
+                page_limit=MAX_PAGE_SIZE_FOR_SEARCH
+            ))
+        url = settings.SEARCH_URL
+        params = dict(
+            self._params,
+            q=quote_plus(token),
+            c='apps'
+        )
+        data = utils.generate_post_data(0, 0, pagtok=settings.PAGE_TOKENS[page])
+        try:
+            response = await self.send_request('POST', url, data, params=params)
+            soup = BeautifulSoup(response, 'lxml')
+        except ClientResponseError as e:
+            raise ValueError('INVALID_TOKEN: {app}. {error}'.format(
+                token=token,
                 error=e
             ))
         apps = list(map(
