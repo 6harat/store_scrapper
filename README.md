@@ -68,8 +68,8 @@ Program to collect information about games available on Google Play Store
 - [ ] use asyncio.shield to protect the important tasks (https://stackoverflow.com/a/52511210/6687477)
 - [ ] implement flush feature
 - [ ] implement search feature
-- [ ] implement previous result aggregation feature
-- [ ] implement manager for collecting details of aggregated records
+- [x] implement previous result aggregation feature
+- [x] implement manager for collecting details of aggregated records
 - [ ] experiment with `hl` and `gl` query params to gather more records
 - [ ] seems like not all games return records for `/similar`, e.g.: 'io.flowlab.TinyDictator995265', 'com.amelosinteractive.snake'
 - [ ] `def func(key_arg=<default-value>)` does not populate `key_arg` with `<default-value>` when called as `func(key_arg=None)`. fix this logic in the entire code
